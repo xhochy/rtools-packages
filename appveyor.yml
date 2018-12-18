@@ -1,5 +1,13 @@
 clone_folder: C:\msys64\home\mingw-packages
 
+init:
+  ps: |
+        $ErrorActionPreference = "Stop"
+        Invoke-WebRequest http://raw.github.com/krlmlr/r-appveyor/master/scripts/appveyor-tool.ps1 -OutFile "..\appveyor-tool.ps1"
+        Import-Module '..\appveyor-tool.ps1'
+install:
+  ps: InstallRtools
+
 environment:
   DISABLE_QUALITY_CHECK: true
   PATH: C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Program Files\Git\cmd;C:\Program Files\7-Zip

@@ -1,7 +1,7 @@
 # Maintainer: Kouhei Sutou <kou@clear-code.com>
 
 _realname=arrow
-pkgbase=mingw-w64-${_realname}
+pkgbase=mingw-w64-${_realname}-backport
 pkgname="${MINGW_PACKAGE_PREFIX}-${_realname}"
 pkgver=0.11.1
 pkgrel=1
@@ -16,10 +16,12 @@ makedepends=("${MINGW_PACKAGE_PREFIX}-cmake"
 options=("staticlibs" "strip" "!buildflags")
 source=("https://www.apache.org/dist/arrow/arrow-${pkgver}/apache-${_realname}-${pkgver}.tar.gz"
         "https://github.com/apache/arrow/commit/aaf70a41575f5eff590b4f73b8160ae896e6c24e.patch"
-        "https://github.com/apache/arrow/commit/eb500b657895ed5f762aa7b819fcea2cb898358d.patch")
+        "https://github.com/apache/arrow/commit/eb500b657895ed5f762aa7b819fcea2cb898358d.patch"
+        "cpuidex.patch")
 sha256sums=("c524f3d47f0cdb7445c0326b20e79f60485e12daeb2adc8ad6a845ad6c19c1ac"
             "bebf9c852d36bd16c218c8965ec4899c9b82434a9cd143b19f439e060bb57e1d"
-            "a5e8a16ab51b728d00a74af57ae07e3d6fb6dd63ef71c805dc6fb3e07a369db0")
+            "a5e8a16ab51b728d00a74af57ae07e3d6fb6dd63ef71c805dc6fb3e07a369db0"
+            "SKIP")
 
 cmake_build_type=release
 meson_build_type=debugoptimized
@@ -32,6 +34,7 @@ prepare() {
   pushd ${source_dir}
   patch -p1 -i ${srcdir}/aaf70a41575f5eff590b4f73b8160ae896e6c24e.patch
   patch -p1 -i ${srcdir}/eb500b657895ed5f762aa7b819fcea2cb898358d.patch
+  patch -p1 -i ${srcdir}/cpuidex.patch
   popd
 }
 
@@ -39,6 +42,12 @@ build() {
   [[ -d ${cpp_build_dir} ]] && rm -rf ${cpp_build_dir}
   mkdir -p ${cpp_build_dir}
   pushd ${cpp_build_dir}
+
+  export CC="/C/Rtools${MINGW_PREFIX/mingw/mingw_}/bin/gcc"
+  export CXX="/C/Rtools${MINGW_PREFIX/mingw/mingw_}/bin/g++"
+  export PATH="/C/Rtools${MINGW_PREFIX/mingw/mingw_}/bin:$PATH"
+  export CPPFLAGS="-I${MINGW_PREFIX}/include"
+  export LIBS="-L${MINGW_PREFIX}/libs"
 
   MSYS2_ARG_CONV_EXCL="-DCMAKE_INSTALL_PREFIX=" \
     ${MINGW_PREFIX}/bin/cmake.exe \
@@ -62,6 +71,8 @@ build() {
 	  -DPTHREAD_LIBRARY=OFF \
 	  -DARROW_BUILD_UTILITIES=ON \
 	  -DARROW_HDFS=OFF
+
+	  sed -i 's/-fPIC/ /g' flatbuffers_ep-prefix/src/flatbuffers_ep-stamp/flatbuffers_ep-configure-RELEASE.cmake
 
   make
   popd
