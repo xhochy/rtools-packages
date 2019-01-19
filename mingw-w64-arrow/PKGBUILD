@@ -15,8 +15,10 @@ makedepends=("${MINGW_PACKAGE_PREFIX}-cmake"
              "${MINGW_PACKAGE_PREFIX}-gcc")
 options=("staticlibs" "strip" "!buildflags")
 source=("https://www.apache.org/dist/arrow/arrow-${pkgver}/apache-${_realname}-${pkgver}.tar.gz"
-        "32bit.patch")
+        "32bit.patch"
+        "cpuidex.patch")
 sha256sums=("34dae7e4dde9274e9a52610683e78a80f3ca312258ad9e9f2c0973cf44247a98"
+            "SKIP"
             "SKIP")
 
 cmake_build_type=release
@@ -29,6 +31,7 @@ c_glib_build_dir=build-${CARCH}-c-glib
 prepare() {
   pushd ${source_dir}
   patch -p1 -i ${srcdir}/32bit.patch
+  patch -p1 -i ${srcdir}/cpuidex.patch
   popd
 }
 
@@ -36,6 +39,12 @@ build() {
   [[ -d ${cpp_build_dir} ]] && rm -rf ${cpp_build_dir}
   mkdir -p ${cpp_build_dir}
   pushd ${cpp_build_dir}
+
+  export CC="/C/Rtools${MINGW_PREFIX/mingw/mingw_}/bin/gcc"
+  export CXX="/C/Rtools${MINGW_PREFIX/mingw/mingw_}/bin/g++"
+  export PATH="/C/Rtools${MINGW_PREFIX/mingw/mingw_}/bin:$PATH"
+  export CPPFLAGS="-I${MINGW_PREFIX}/include"
+  export LIBS="-L${MINGW_PREFIX}/libs"  
 
   MSYS2_ARG_CONV_EXCL="-DCMAKE_INSTALL_PREFIX=" \
     ${MINGW_PREFIX}/bin/cmake.exe \
@@ -60,6 +69,8 @@ build() {
     -DARROW_BUILD_UTILITIES=ON \
     -DARROW_TEST_LINKAGE="static" \
     -DARROW_HDFS=OFF
+
+  sed -i 's/-fPIC/ /g' flatbuffers_ep-prefix/src/flatbuffers_ep-stamp/flatbuffers_ep-configure-RELEASE.cmake
 
   make
   popd
