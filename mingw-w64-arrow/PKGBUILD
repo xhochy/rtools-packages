@@ -3,35 +3,40 @@
 _realname=arrow
 pkgbase=mingw-w64-${_realname}
 pkgname="${MINGW_PACKAGE_PREFIX}-${_realname}"
-pkgver=0.12.0
+pkgver=0.12.0.9000
 pkgrel=1
 pkgdesc="Apache Arrow is a cross-language development platform for in-memory data (mingw-w64)"
 arch=("any")
 url="https://arrow.apache.org/"
 license=("Apache-2.0")
 depends=("${MINGW_PACKAGE_PREFIX}-boost"
-         "${MINGW_PACKAGE_PREFIX}-zlib")
+         "${MINGW_PACKAGE_PREFIX}-zlib"
+         "${MINGW_PACKAGE_PREFIX}-double-conversion"
+		 "${MINGW_PACKAGE_PREFIX}-thrift")
 makedepends=("${MINGW_PACKAGE_PREFIX}-cmake"
              "${MINGW_PACKAGE_PREFIX}-gcc")
 options=("staticlibs" "strip" "!buildflags")
-source=("https://www.apache.org/dist/arrow/arrow-${pkgver}/apache-${_realname}-${pkgver}.tar.gz"
-        "32bit.patch"
-        "cpuidex.patch")
-sha256sums=("34dae7e4dde9274e9a52610683e78a80f3ca312258ad9e9f2c0973cf44247a98"
-            "SKIP"
-            "SKIP")
+source=("${_realname}"::"git+https://github.com/apache/arrow"
+		"cpuidex.patch")
+sha256sums=("SKIP"
+			"SKIP")
 
 cmake_build_type=release
 meson_build_type=debugoptimized
 
-source_dir=apache-${_realname}-${pkgver}
+#source_dir=${_realname}-${pkgver}
+source_dir=${_realname}
 cpp_build_dir=build-${CARCH}-cpp
 c_glib_build_dir=build-${CARCH}-c-glib
 
+pkgver() {
+  cd "$source_dir"
+  grep Version r/DESCRIPTION | cut -d " " -f 2
+}
+
 prepare() {
   pushd ${source_dir}
-  patch -p1 -i ${srcdir}/32bit.patch
-  patch -p1 -i ${srcdir}/cpuidex.patch
+  patch -p1 -R -i ${srcdir}/cpuidex.patch
   popd
 }
 
@@ -40,6 +45,9 @@ build() {
   mkdir -p ${cpp_build_dir}
   pushd ${cpp_build_dir}
 
+  # Workaround to fix static libparquet
+  export CXXFLAGS="-DARROW_STATIC"
+  
   export CC="/C/Rtools${MINGW_PREFIX/mingw/mingw_}/bin/gcc"
   export CXX="/C/Rtools${MINGW_PREFIX/mingw/mingw_}/bin/g++"
   export PATH="/C/Rtools${MINGW_PREFIX/mingw/mingw_}/bin:$PATH"
@@ -54,6 +62,9 @@ build() {
     -DCMAKE_BUILD_TYPE=${cmake_build_type} \
     -DARROW_BUILD_STATIC=ON \
     -DARROW_BUILD_TESTS=OFF \
+    -DARROW_PARQUET=ON \
+    -DARROW_PLASMA=OFF \
+    -DARROW_HDFS=OFF \
     -DARROW_PYTHON=OFF \
     -DARROW_BOOST_USE_SHARED=OFF \
     -DARROW_WITH_SNAPPY=OFF \
@@ -65,12 +76,13 @@ build() {
     -DARROW_WITH_ZLIB=OFF \
     -DARROW_WITH_BROTLI=OFF \
     -DARROW_USE_GLOG=OFF \
-    -DPTHREAD_LIBRARY=OFF \
     -DARROW_BUILD_UTILITIES=ON \
     -DARROW_TEST_LINKAGE="static" \
-    -DARROW_HDFS=OFF
-
+	-DTHRIFT_HOME="${MINGW_PREFIX}" \
+	-DDOUBLE_CONVERSION_HOME="${MINGW_PREFIX}"
+	
   sed -i 's/-fPIC/ /g' flatbuffers_ep-prefix/src/flatbuffers_ep-stamp/flatbuffers_ep-configure-RELEASE.cmake
+
 
   make
   popd
