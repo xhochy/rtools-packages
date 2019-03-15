@@ -78,9 +78,9 @@ build() {
     -DARROW_USE_GLOG=OFF \
     -DARROW_BUILD_UTILITIES=ON \
     -DARROW_TEST_LINKAGE="static" \
-	-DTHRIFT_HOME="${MINGW_PREFIX}" \
-	-DDOUBLE_CONVERSION_HOME="${MINGW_PREFIX}"
-	
+    -Ddouble-conversion_ROOT="${MINGW_PREFIX}" \
+    -DThrift_ROOT="${MINGW_PREFIX}"
+
   sed -i 's/-fPIC/ /g' flatbuffers_ep-prefix/src/flatbuffers_ep-stamp/flatbuffers_ep-configure-RELEASE.cmake
 
 
